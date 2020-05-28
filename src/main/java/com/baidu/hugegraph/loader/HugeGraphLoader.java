@@ -59,9 +59,9 @@ public final class HugeGraphLoader {
      * TODO: use a more graceful way to express loader end succeed or failed
      */
     private boolean succeed;
-    private LoadContext context;
-    private LoadMapping mapping;
-    private TaskManager manager;
+    private final LoadContext context;
+    private final LoadMapping mapping;
+    private final TaskManager manager;
 
     public static void main(String[] args) {
         HugeGraphLoader loader;
@@ -214,9 +214,6 @@ public final class HugeGraphLoader {
         int batchSize = this.context.options().batchSize;
         List<Line> lines = new ArrayList<>(batchSize);
         for (boolean finished = false; !finished;) {
-            if (this.context.stopped()) {
-                return;
-            }
             try {
                 if (reader.hasNext()) {
                     lines.add(reader.next());
@@ -230,6 +227,7 @@ public final class HugeGraphLoader {
             }
             if (this.context.stopped()) {
                 LOG.warn("Read errors exceed limit, load task stopped");
+                this.succeed = false;
                 return;
             }
 
@@ -245,6 +243,7 @@ public final class HugeGraphLoader {
                 this.markStopIfNeeded();
                 if (this.context.stopped()) {
                     LOG.warn("Parse errors exceed limit, stopped loading tasks");
+                    this.succeed = false;
                     return;
                 }
 
@@ -307,6 +306,9 @@ public final class HugeGraphLoader {
         }
     }
 
+    /**
+     * TODO: How to distinguish whether the load ends normally or abnormally
+     */
     private void stopThenShutdown() {
         LOG.info("Stop loading then shutdown HugeGraphLoader");
         if (this.context == null) {
